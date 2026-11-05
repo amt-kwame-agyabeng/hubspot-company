@@ -450,7 +450,7 @@ http://127.0.0.1:8500
 
 The application should appear in the service catalog when registration is successful.
 
-**Note:** Consul service registration and health-check integration have been implemented. Consul DNS-based discovery should be verified separately before claiming that DNS discovery has been fully demonstrated.
+**Note:** Consul service registration, health-check integration and DNS-based service discovery have all been successfully verified.
 
 ## 10. Health Checks and Monitoring
 
@@ -664,8 +664,8 @@ The following areas were verified:
 | Consul HTTP health check | Configured |
 | Persistent host volumes | Configured |
 | Static port allocation | Configured |
-| Consul DNS discovery | Not yet verified |
-| GitHub Actions CI/CD pipeline | Not yet implemented |
+| Consul DNS discovery | Verified — A and SRV records resolved successfully |
+| GitHub Actions CI/CD pipeline | Implemented and successfully executed |
 
 The application health endpoint returned a successful response during testing.
 
@@ -757,6 +757,18 @@ Screenshots documenting the implementation and deployment process are available 
 ### Nomad Deployment Verification
 
 ![Nomad deployment verification](screenshots/06-nomad-deployment-verification.png)
+
+### GitHub Actions Workflow Success
+
+![GitHub Actions workflow success](screenshots/07-github-actions-success.png)
+
+### GitHub Actions Deployment Steps
+
+![GitHub Actions deployment steps](screenshots/08-github-actions-deployment-steps.png)
+
+### Consul DNS Verification
+
+![Consul DNS verification](screenshots/09-consul-dns-verification.png)
 
 ## 16. Challenges and Solutions
 
@@ -859,28 +871,12 @@ The project has established a working local Nomad deployment and supporting infr
 | PostgreSQL deployment | Implemented |
 | Redis deployment | Implemented |
 | Persistent host volumes | Configured |
-| Consul DNS discovery | Pending verification |
-| GitHub Actions CI/CD pipeline | Pending implementation |
+| Consul DNS discovery | Verified |
+| GitHub Actions CI/CD pipeline | Implemented and verified |
 
 ## 19. Future Improvements
 
 The following improvements would extend the project beyond its current local staging implementation.
-
-### Automated CI/CD with GitHub Actions
-
-Create a GitHub Actions workflow to automate:
-
-1. Source code checkout.
-2. Docker image building.
-3. Deployment configuration validation.
-4. Application deployment to Nomad.
-5. Deployment status verification.
-
-A self-hosted GitHub Actions runner or another securely connected deployment runner will be required because the Nomad agent currently runs in the local WSL2 environment.
-
-### Consul DNS Discovery
-
-Verify that the application can be resolved through Consul DNS using its registered service name.
 
 ### Improved Container Networking
 
@@ -912,7 +908,7 @@ The application was successfully deployed in a local staging environment, with r
 
 The project also provided practical experience in troubleshooting container networking, database readiness, application startup and orchestration behaviour.
 
-The resulting deployment provides a foundation for further improvements, including Consul DNS verification, automated GitHub Actions deployment and production-oriented security and reliability enhancements.
+The resulting deployment demonstrates automated GitHub Actions CI/CD, successful Nomad orchestration and verified Consul DNS service discovery. Further improvements can focus on production-oriented security, networking and reliability.
 
 ---
 
