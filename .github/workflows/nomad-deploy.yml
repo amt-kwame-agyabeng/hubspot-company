@@ -1,0 +1,98 @@
+name: Deploy HubSpot Company to Nomad
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hubspot-company-nomad-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, Validate and Deploy
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify deployment tools
+        run: |
+          docker version
+          nomad version
+          consul version
+
+      - name: Build staging Docker image
+        run: |
+          docker build \
+            -f docker/Dockerfile.staging \
+            -t hubspot-company:staging .
+
+      - name: Validate Nomad job
+        run: |
+          nomad job validate nomad-hubspot.hcl
+
+      - name: Deploy to Nomad
+        run: |
+          nomad job run -detach=false nomad-hubspot.hcl
+
+      - name: Verify Nomad deployment
+        run: |
+          nomad job status hubspot-company
+          ALLOC_ID="$(nomad job allocs -json hubspot-company | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["ID"])')"
+          nomad alloc status "$ALLOC_ID"
+          NOMAD_ALLOC_JSON="$(nomad alloc status -json "$ALLOC_ID")" python3 - <<'PYTHON'
+          import json
+          import os
+
+          allocation = json.loads(os.environ["NOMAD_ALLOC_JSON"])
+          expected = {"postgres", "redis", "app"}
+          states = allocation.get("TaskStates", {})
+          missing = expected - states.keys()
+          unhealthy = {
+              name: states[name].get("State")
+              for name in expected & states.keys()
+              if states[name].get("State") != "running"
+          }
+
+          if allocation.get("ClientStatus") != "running" or missing or unhealthy:
+              raise SystemExit(
+                  f"Allocation unhealthy: status={allocation.get('ClientStatus')}, "
+                  f"missing={missing}, unhealthy={unhealthy}"
+              )
+
+          print("Allocation and all expected tasks are running.")
+          PYTHON
+
+      - name: Verify application health
+        run: |
+          curl --fail --silent --show-error \
+            --retry 12 \
+            --retry-delay 5 \
+            --retry-connrefused \
+            http://127.0.0.1:5104/health-simple
+
+      - name: Verify Consul registration
+        run: |
+          consul catalog services | grep -q '^hubspot-company$'
+          echo "Consul service registration verified."
+
+      - name: Verify Consul DNS discovery
+        run: |
+          dig @127.0.0.1 -p 8600 \
+            hubspot-company.service.consul A
+
+          dig @127.0.0.1 -p 8600 \
+            hubspot-company.service.consul SRV
+
+          dig +short @127.0.0.1 -p 8600 \
+            hubspot-company.service.consul SRV | grep -q '5104'
+
+          echo "Consul DNS discovery verified."
